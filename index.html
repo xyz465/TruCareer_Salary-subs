@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>TruCareer — Share Your Salary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine:#163300;
+    --pine-hover:#0e2200;
+    --lime:#ABED67;
+    --lime-hover:#9BDB55;
+    --bg:#F7F8F3;
+    --card:#FFFFFF;
+    --text-secondary:#5B6355;
+    --border:#DCE3D2;
+    --border-strong:#C3CDB6;
+    --error:#B3261E;
+    --font-display:'Outfit',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:var(--font-display);
+    color:var(--pine);
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px 64px;
+  }
+  .page{width:100%;max-width:560px;}
+
+  /* ---------- top bar ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .logo{font-weight:700;font-size:18px;letter-spacing:-0.02em;color:var(--pine);}
+  .logo span{color:var(--text-secondary);font-weight:500;}
+  .progress{display:flex;flex-direction:column;align-items:flex-end;gap:6px;width:150px;}
+  .progress-track{width:100%;height:4px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;width:33.33%;background:var(--lime);border-radius:4px;transition:width .35s ease;}
+  .progress-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--text-secondary);}
+
+  /* ---------- card ---------- */
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:36px 32px;
+    box-shadow:0 1px 2px rgba(22,51,0,0.04), 0 12px 32px rgba(22,51,0,0.05);
+  }
+  @media (max-width:520px){ .card{padding:24px 20px;border-radius:16px;} }
+
+  .step{display:none;}
+  .step.active{display:block;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .eyebrow{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);letter-spacing:.08em;margin:0 0 8px;}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px;font-weight:600;letter-spacing:-0.01em;}
+  .subtitle{font-size:14.5px;color:var(--text-secondary);margin:0 0 28px;line-height:1.5;}
+
+  .field{margin-bottom:24px;position:relative;}
+  label{display:block;font-size:13.5px;font-weight:600;color:var(--pine);margin-bottom:8px;}
+  label .optional{font-weight:400;color:var(--text-secondary);}
+
+  input[type="text"], select{
+    width:100%;
+    padding:13px 14px;
+    border:1px solid var(--border-strong);
+    border-radius:10px;
+    font-family:var(--font-display);
+    font-size:15px;
+    color:var(--pine);
+    background:#fff;
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type="text"]:focus, select:focus{
+    border-color:var(--pine);
+    box-shadow:0 0 0 3px rgba(22,51,0,0.10);
+  }
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23163300' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+  select:invalid{color:var(--text-secondary);}
+
+  .error{font-size:12.5px;color:var(--error);margin-top:6px;min-height:15px;}
+
+  /* ---------- salary ---------- */
+  .salary-row{display:flex;align-items:center;border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;background:#fff;transition:border-color .15s ease, box-shadow .15s ease;}
+  .salary-row:focus-within{border-color:var(--pine);box-shadow:0 0 0 3px rgba(22,51,0,0.10);}
+  .salary-row .currency{font-family:var(--font-mono);font-size:16px;color:var(--text-secondary);padding:0 0 0 14px;}
+  .salary-row input{border:none;box-shadow:none;font-family:var(--font-mono);font-size:17px;padding:13px 8px;flex:1;min-width:0;}
+  .salary-row input:focus{box-shadow:none;}
+  .salary-type-toggle{display:flex;gap:4px;padding:5px;}
+  .salary-type-toggle .pill{padding:7px 12px;font-size:12.5px;}
+
+  .salary-preview{font-family:var(--font-mono);font-size:28px;font-weight:500;color:var(--pine);margin-top:12px;letter-spacing:-0.02em;}
+  .salary-preview .unit{font-size:13px;color:var(--text-secondary);font-family:var(--font-display);margin-left:6px;}
+
+  /* ---------- pills ---------- */
+  .pill-group{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{
+    font-family:var(--font-display);
+    font-size:13.5px;
+    font-weight:500;
+    padding:10px 16px;
+    border-radius:999px;
+    border:1px solid var(--border-strong);
+    background:#fff;
+    color:var(--pine);
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .pill:hover{border-color:var(--pine);}
+  .pill.selected{background:var(--pine);border-color:var(--pine);color:#fff;}
+
+  /* ---------- combobox ---------- */
+  .combo-field{position:relative;}
+  .combo-panel{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;right:0;
+    max-height:240px;
+    overflow-y:auto;
+    background:#fff;
+    border:1px solid var(--border-strong);
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(22,51,0,0.12);
+    z-index:20;
+    padding:6px;
+  }
+  .combo-panel.open{display:block;}
+  .combo-group-label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;color:var(--text-secondary);padding:8px 10px 4px;}
+  .combo-option{padding:9px 10px;border-radius:7px;font-size:14px;cursor:pointer;}
+  .combo-option:hover, .combo-option.highlight{background:var(--bg);}
+  .combo-option.other-option{color:var(--text-secondary);font-style:italic;border-top:1px solid var(--border);margin-top:4px;padding-top:12px;}
+  .other-input{margin-top:10px;}
+  .hidden{display:none !important;}
+
+  /* ---------- skills tags ---------- */
+  .tag-input-row{display:flex;flex-wrap:wrap;gap:8px;border:1px solid var(--border-strong);border-radius:10px;padding:10px;background:#fff;}
+  .tag-input-row:focus-within{border-color:var(--pine);box-shadow:0 0 0 3px rgba(22,51,0,0.10);}
+  .tags{display:contents;}
+  .tag{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:6px 8px 6px 12px;font-size:13px;}
+  .tag button{border:none;background:none;color:var(--text-secondary);cursor:pointer;font-size:14px;line-height:1;padding:2px;}
+  #skillInput{flex:1;min-width:120px;border:none;outline:none;font-family:var(--font-display);font-size:14px;padding:6px 4px;}
+  .suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .suggestion-chip{font-size:12.5px;padding:7px 12px;border-radius:999px;border:1px dashed var(--border-strong);color:var(--text-secondary);cursor:pointer;background:#fff;}
+  .suggestion-chip:hover{border-color:var(--pine);color:var(--pine);}
+
+  /* ---------- buttons / nav ---------- */
+  .btn-primary{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:var(--lime);
+    color:var(--pine);
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:15.5px;
+    cursor:pointer;
+    margin-top:8px;
+    transition:background .12s ease;
+  }
+  .btn-primary:hover{background:var(--lime-hover);}
+  .btn-primary:disabled{opacity:.6;cursor:default;}
+  .nav-row{display:flex;align-items:center;gap:16px;margin-top:8px;}
+  .nav-row .btn-primary{margin-top:0;}
+  .btn-back{background:none;border:none;color:var(--pine);font-family:var(--font-display);font-weight:500;font-size:14.5px;cursor:pointer;padding:12px 4px;white-space:nowrap;}
+  .btn-back:hover{text-decoration:underline;}
+
+  /* ---------- success ---------- */
+  .success-icon{width:52px;height:52px;border-radius:50%;background:var(--lime);color:var(--pine);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px;}
+
+  .foot{text-align:center;font-size:12px;color:var(--text-secondary);margin-top:20px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .step.active{animation:none;}
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="topbar">
+    <div class="logo">Tru<span>Career</span></div>
+    <div class="progress">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">STEP 01 / 03</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <form id="salaryForm" novalidate>
+
+      <!-- STEP 1 -->
+      <section class="step active" data-step="1">
+        <p class="eyebrow">01 — PAY</p>
+        <h1>What do you earn?</h1>
+        <p class="subtitle">Anonymous by default. We only ever show this in aggregate, never with your name.</p>
+
+        <div class="field">
+          <label for="salaryInput">Monthly salary</label>
+          <div class="salary-row">
+            <span class="currency">৳</span>
+            <input type="text" inputmode="numeric" id="salaryInput" placeholder="0" autocomplete="off">
+            <div class="salary-type-toggle" id="salaryTypeGroup" role="group" aria-label="Gross or net"></div>
+          </div>
+          <div class="salary-preview" id="salaryPreview">৳ 0 <span class="unit">/ month</span></div>
+          <div class="error" id="err-salary"></div>
+        </div>
+
+        <div class="field combo-field">
+          <label for="roleInput">Your role</label>
+          <input type="text" id="roleInput" placeholder="Search e.g. Merchandiser, Software Engineer" autocomplete="off">
+          <div class="combo-panel" id="rolePanel"></div>
+          <input type="text" id="roleOtherInput" class="other-input hidden" placeholder="Type your exact job title" autocomplete="off">
+          <div class="error" id="err-role"></div>
+        </div>
+
+        <div class="field">
+          <label>Years of experience</label>
+          <div class="pill-group" id="experienceGroup"></div>
+          <div class="error" id="err-experience"></div>
+        </div>
+
+        <div class="field combo-field">
+          <label for="cityInput">City</label>
+          <input type="text" id="cityInput" placeholder="Search your city" autocomplete="off">
+          <div class="combo-panel" id="cityPanel"></div>
+          <div class="error" id="err-city"></div>
+        </div>
+
+        <button type="button" class="btn-primary" data-next="2">Continue →</button>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="step" data-step="2">
+        <p class="eyebrow">02 — EMPLOYER</p>
+        <h1>Where do you work?</h1>
+        <p class="subtitle">This helps us map real employers, not just job titles.</p>
+
+        <div class="field">
+          <label for="companyInput">Company name</label>
+          <input type="text" id="companyInput" placeholder="e.g. Square Pharmaceuticals" autocomplete="off">
+          <div class="error" id="err-company"></div>
+        </div>
+
+        <div class="field">
+          <label>Company size <span class="optional">(employees)</span></label>
+          <div class="pill-group" id="sizeGroup"></div>
+          <div class="error" id="err-size"></div>
+        </div>
+
+        <div class="field">
+          <label>Employment type</label>
+          <div class="pill-group" id="employmentGroup"></div>
+          <div class="error" id="err-employment"></div>
+        </div>
+
+        <div class="field">
+          <label for="industrySelect">Industry</label>
+          <select id="industrySelect" required>
+            <option value="" disabled selected>Select industry</option>
+          </select>
+          <div class="error" id="err-industry"></div>
+        </div>
+
+        <div class="nav-row">
+          <button type="button" class="btn-back" data-back="1">← Back</button>
+          <button type="button" class="btn-primary" data-next="3">Continue →</button>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="step" data-step="3">
+        <p class="eyebrow">03 — ABOUT YOU</p>
+        <h1>Almost done</h1>
+        <p class="subtitle">A few last details, then you're in.</p>
+
+        <div class="field">
+          <label for="skillInput">Key skills <span class="optional">(up to 8 — press Enter to add)</span></label>
+          <div class="tag-input-row" id="tagInputRow">
+            <div class="tags" id="skillTags"></div>
+            <input type="text" id="skillInput" placeholder="Type a skill…" autocomplete="off">
+          </div>
+          <div class="suggestions" id="skillSuggestions"></div>
+          <div class="error" id="err-skills"></div>
+        </div>
+
+        <div class="field">
+          <label>Gender <span class="optional">— used only for pay-gap analysis</span></label>
+          <div class="pill-group" id="genderGroup"></div>
+          <div class="error" id="err-gender"></div>
+        </div>
+
+        <!-- honeypot: real users never see or fill this -->
+        <input type="text" id="hp_field" class="hidden" tabindex="-1" autocomplete="off">
+
+        <div class="nav-row">
+          <button type="button" class="btn-back" data-back="2">← Back</button>
+          <button type="submit" class="btn-primary" id="submitBtn">Submit</button>
+        </div>
+      </section>
+
+      <!-- SUCCESS -->
+      <section class="step" data-step="success">
+        <div class="success-icon">✓</div>
+        <h1>Thank you</h1>
+        <p class="subtitle">You've just added one real, verified data point to Bangladesh's first transparent salary map. That's how we fix an information-asymmetric job market.</p>
+      </section>
+
+    </form>
+  </div>
+
+  <p class="foot">TruCareer · Your response is anonymized and never shared individually.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     0. CONFIG — paste your Google Apps Script Web App URL here
+     ============================================================ */
+  var SHEET_ENDPOINT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  /* ============================================================
+     1. DATA — BD-specific taxonomies
+     ============================================================ */
+  var ROLES = [
+    {group:"Technology & Engineering", items:[
+      ["software-engineer","Software Engineer"],
+      ["data-analyst","Data Analyst"],
+      ["data-scientist","Data Scientist"],
+      ["devops-engineer","DevOps Engineer"],
+      ["qa-engineer","QA / Test Engineer"],
+      ["ui-ux-designer","UI/UX Designer"],
+      ["it-support","IT Support / Systems Admin"],
+      ["product-manager","Product Manager"],
+      ["business-analyst","Business Analyst"]
+    ]},
+    {group:"RMG & Manufacturing", items:[
+      ["merchandiser","Merchandiser"],
+      ["qc-inspector","Quality Controller / QC Inspector"],
+      ["production-supervisor","Production / Floor Supervisor"],
+      ["industrial-engineer","Industrial Engineer"],
+      ["compliance-officer","Compliance Officer"],
+      ["machine-operator","Machine Operator"],
+      ["production-manager","Production Manager"],
+      ["pattern-master","Sample / Pattern Master"]
+    ]},
+    {group:"Sales & Marketing", items:[
+      ["sales-executive","Sales Executive"],
+      ["business-development-executive","Business Development Executive"],
+      ["digital-marketing-executive","Digital Marketing Executive"],
+      ["marketing-manager","Brand / Marketing Manager"],
+      ["customer-service-rep","Customer Service Representative"],
+      ["key-account-manager","Key Account Manager"]
+    ]},
+    {group:"Finance & Accounts", items:[
+      ["accountant","Accountant"],
+      ["finance-manager","Finance Manager"],
+      ["auditor","Auditor"],
+      ["bank-officer","Bank Officer"],
+      ["relationship-manager-banking","Relationship Manager (Banking)"],
+      ["credit-risk-analyst","Credit / Risk Analyst"]
+    ]},
+    {group:"HR & Admin", items:[
+      ["hr-executive","HR Executive"],
+      ["hr-manager","HR Manager"],
+      ["admin-officer","Admin Officer"],
+      ["executive-assistant","Executive Assistant"],
+      ["recruiter","Recruiter / Talent Acquisition"]
+    ]},
+    {group:"Operations & Supply Chain", items:[
+      ["operations-manager","Operations Manager"],
+      ["supply-chain-executive","Supply Chain Executive"],
+      ["logistics-officer","Logistics Officer"],
+      ["procurement-officer","Procurement Officer"],
+      ["store-executive","Store / Inventory Executive"]
+    ]},
+    {group:"Healthcare", items:[
+      ["physician","Physician / Doctor"],
+      ["nurse","Nurse"],
+      ["pharmacist","Pharmacist"],
+      ["medical-technologist","Medical Technologist"]
+    ]},
+    {group:"Education", items:[
+      ["teacher","Teacher"],
+      ["lecturer","Lecturer"],
+      ["academic-coordinator","Academic Coordinator"]
+    ]},
+    {group:"Engineering (Core)", items:[
+      ["civil-engineer","Civil Engineer"],
+      ["electrical-engineer","Electrical Engineer"],
+      ["mechanical-engineer","Mechanical Engineer"],
+      ["architect","Architect"]
+    ]},
+    {group:"Legal & Public Service", items:[
+      ["legal-officer","Legal Officer / Lawyer"],
+      ["government-officer","Government Officer (BCS/Cadre)"],
+      ["ngo-program-officer","NGO Program Officer"]
+    ]},
+    {group:"Creative & Media", items:[
+      ["content-writer","Content Writer"],
+      ["graphic-designer","Graphic Designer"],
+      ["journalist","Journalist"]
+    ]}
+  ];
+
+  var CITIES = ["Dhaka","Chittagong","Gazipur","Narayanganj","Savar","Sylhet","Khulna",
+    "Rajshahi","Barisal","Rangpur","Mymensingh","Comilla","Bogura","Narsingdi","Tongi",
+    "Cox's Bazar","Jessore","Feni","Naogaon","Dinajpur"];
+
+  var INDUSTRIES = ["RMG / Garments & Textiles","Banking & Financial Services",
+    "NGO / Development","Telecommunications","IT & Software","Pharmaceuticals","FMCG",
+    "Education","Healthcare","Real Estate & Construction","Manufacturing (Non-RMG)",
+    "Retail & E-commerce","Media & Advertising","Government / Public Service",
+    "Agriculture & Agro-processing","Logistics & Transportation","Hospitality & Tourism",
+    "Energy & Power","Other"];
+
+  var SKILL_SUGGESTIONS = ["Excel","Communication","Sales","Project Management",
+    "Data Analysis","Digital Marketing","Merchandising","Quality Control",
+    "Customer Service","Accounting","SQL","Python","English Proficiency","Leadership",
+    "Negotiation","Supply Chain","HR Management","Content Writing","Graphic Design",
+    "Problem Solving"];
+
+  var EXPERIENCE = [["<1","< 1 year"],["1-3","1–3 years"],["3-5","3–5 years"],
+    ["5-8","5–8 years"],["8-12","8–12 years"],["12+","12+ years"]];
+  var SIZE = [["1-10","1–10"],["11-50","11–50"],["51-200","51–200"],["201-500","201–500"],
+    ["501-1000","501–1000"],["1000+","1000+"],["unsure","Not sure"]];
+  var EMPLOYMENT = [["full-time","Full-time"],["part-time","Part-time"],["contract","Contract"],
+    ["internship","Internship"],["remote-freelance","Remote / Freelance"]];
+  var GENDER = [["male","Male"],["female","Female"],["prefer-not-to-say","Prefer not to say"]];
+  var SALARY_TYPE = [["gross","Gross"],["net","Net"]];
+
+  /* ============================================================
+     2. STATE
+     ============================================================ */
+  var state = {
+    monthly_salary: null,
+    salary_type: "gross",
+    role_slug: "",
+    role_raw: "",
+    experience_bucket: "",
+    city: "",
+    company_raw: "",
+    company_size_category: "",
+    employment_type: "",
+    industry: "",
+    skills: [],
+    gender: ""
+  };
+  var currentStep = 1;
+
+  /* ============================================================
+     3. HELPERS
+     ============================================================ */
+  function $(id){ return document.getElementById(id); }
+
+  // South Asian (lakh/crore) digit grouping — 1234567 -> 12,34,567
+  function formatBDT(digitsStr){
+    digitsStr = (digitsStr || "").replace(/[^0-9]/g,"");
+    if (!digitsStr) return "0";
+    if (digitsStr.length <= 3) return digitsStr;
+    var last3 = digitsStr.slice(-3);
+    var other = digitsStr.slice(0,-3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return other + "," + last3;
+  }
+
+  function buildPillGroup(container, options, stateKey, onSelect){
+    container.innerHTML = "";
+    options.forEach(function(opt){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pill";
+      btn.textContent = opt[1];
+      btn.dataset.value = opt[0];
+      btn.addEventListener("click", function(){
+        Array.prototype.forEach.call(container.children, function(c){ c.classList.remove("selected"); });
+        btn.classList.add("selected");
+        state[stateKey] = opt[0];
+        if (onSelect) onSelect(opt[0]);
+        clearError(stateKey);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function clearError(key){
+    var el = $("err-" + key.replace(/_category|_bucket|_slug/,""));
+    if (el) el.textContent = "";
+  }
+
+  /* ============================================================
+     4. STEP 1 — Salary
+     ============================================================ */
+  buildPillGroup($("salaryTypeGroup"), SALARY_TYPE, "salary_type");
+  // default to Gross so the form isn't blocked on a choice most people skip past
+  $("salaryTypeGroup").children[0].classList.add("selected");
+
+  $("salaryInput").addEventListener("input", function(e){
+    var raw = e.target.value.replace(/[^0-9]/g,"");
+    e.target.value = formatBDT(raw);
+    state.monthly_salary = raw ? parseInt(raw,10) : null;
+    var preview = $("salaryPreview");
+    preview.innerHTML = "৳ " + formatBDT(raw) + ' <span class="unit">/ month</span>';
+    clearError("salary");
+  });
+
+  /* ---- role combobox ---- */
+  var roleInput = $("roleInput"), rolePanel = $("rolePanel"), roleOtherInput = $("roleOtherInput");
+  function renderRolePanel(query){
+    query = (query || "").toLowerCase();
+    rolePanel.innerHTML = "";
+    var any = false;
+    ROLES.forEach(function(grp){
+      var matches = grp.items.filter(function(it){ return it[1].toLowerCase().indexOf(query) !== -1; });
+      if (!matches.length) return;
+      any = true;
+      var label = document.createElement("div");
+      label.className = "combo-group-label";
+      label.textContent = grp.group;
+      rolePanel.appendChild(label);
+      matches.forEach(function(it){
+        var opt = document.createElement("div");
+        opt.className = "combo-option";
+        opt.textContent = it[1];
+        opt.addEventListener("click", function(){
+          roleInput.value = it[1];
+          state.role_slug = it[0];
+          state.role_raw = "";
+          roleOtherInput.classList.add("hidden");
+          rolePanel.classList.remove("open");
+          clearError("role");
+        });
+        rolePanel.appendChild(opt);
+      });
+    });
+    var otherOpt = document.createElement("div");
+    otherOpt.className = "combo-option other-option";
+    otherOpt.textContent = "Other — not listed";
+    otherOpt.addEventListener("click", function(){
+      roleInput.value = "Other";
+      state.role_slug = "other";
+      roleOtherInput.classList.remove("hidden");
+      roleOtherInput.focus();
+      rolePanel.classList.remove("open");
+      clearError("role");
+    });
+    rolePanel.appendChild(otherOpt);
+  }
+  roleInput.addEventListener("focus", function(){ renderRolePanel(roleInput.value); rolePanel.classList.add("open"); });
+  roleInput.addEventListener("input", function(){
+    state.role_slug = ""; // require re-selection from list
+    renderRolePanel(roleInput.value);
+    rolePanel.classList.add("open");
+  });
+  roleOtherInput.addEventListener("input", function(e){ state.role_raw = e.target.value; clearError("role"); });
+  document.addEventListener("click", function(e){
+    if (!roleInput.contains(e.target) && !rolePanel.contains(e.target)) rolePanel.classList.remove("open");
+  });
+
+  buildPillGroup($("experienceGroup"), EXPERIENCE, "experience_bucket");
+
+  /* ---- city combobox (assisted free text) ---- */
+  var cityInput = $("cityInput"), cityPanel = $("cityPanel");
+  function renderCityPanel(query){
+    query = (query || "").toLowerCase();
+    cityPanel.innerHTML = "";
+    var matches = CITIES.filter(function(c){ return c.toLowerCase().indexOf(query) !== -1; });
+    matches.forEach(function(c){
+      var opt = document.createElement("div");
+      opt.className = "combo-option";
+      opt.textContent = c;
+      opt.addEventListener("click", function(){
+        cityInput.value = c;
+        state.city = c;
+        cityPanel.classList.remove("open");
+        clearError("city");
+      });
+      cityPanel.appendChild(opt);
+    });
+  }
+  cityInput.addEventListener("focus", function(){ renderCityPanel(cityInput.value); cityPanel.classList.add("open"); });
+  cityInput.addEventListener("input", function(){
+    state.city = cityInput.value.trim();
+    renderCityPanel(cityInput.value);
+    cityPanel.classList.add("open");
+    clearError("city");
+  });
+  document.addEventListener("click", function(e){
+    if (!cityInput.contains(e.target) && !cityPanel.contains(e.target)) cityPanel.classList.remove("open");
+  });
+
+  /* ============================================================
+     5. STEP 2 — Employer
+     ============================================================ */
+  $("companyInput").addEventListener("input", function(e){
+    state.company_raw = e.target.value.trim();
+    clearError("company");
+  });
+
+  buildPillGroup($("sizeGroup"), SIZE, "company_size_category");
+  buildPillGroup($("employmentGroup"), EMPLOYMENT, "employment_type");
+
+  var industrySelect = $("industrySelect");
+  INDUSTRIES.forEach(function(ind){
+    var opt = document.createElement("option");
+    opt.value = ind; opt.textContent = ind;
+    industrySelect.appendChild(opt);
+  });
+  industrySelect.addEventListener("change", function(e){
+    state.industry = e.target.value;
+    clearError("industry");
+  });
+
+  /* ============================================================
+     6. STEP 3 — Skills & Gender
+     ============================================================ */
+  var skillInput = $("skillInput"), skillTags = $("skillTags"), skillSuggestions = $("skillSuggestions");
+
+  function renderTags(){
+    skillTags.innerHTML = "";
+    state.skills.forEach(function(skill){
+      var tag = document.createElement("div");
+      tag.className = "tag";
+      tag.innerHTML = "<span></span>";
+      tag.querySelector("span").textContent = skill;
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.addEventListener("click", function(){
+        state.skills = state.skills.filter(function(s){ return s !== skill; });
+        renderTags();
+        renderSuggestions();
+      });
+      tag.appendChild(remove);
+      skillTags.appendChild(tag);
+    });
+  }
+
+  function addSkill(skill){
+    skill = skill.trim();
+    if (!skill) return;
+    if (state.skills.length >= 8) return;
+    if (state.skills.map(function(s){return s.toLowerCase();}).indexOf(skill.toLowerCase()) !== -1) return;
+    state.skills.push(skill);
+    renderTags();
+    renderSuggestions();
+    clearError("skills");
+  }
+
+  function renderSuggestions(){
+    skillSuggestions.innerHTML = "";
+    var added = state.skills.map(function(s){return s.toLowerCase();});
+    SKILL_SUGGESTIONS.filter(function(s){ return added.indexOf(s.toLowerCase()) === -1; })
+      .forEach(function(s){
+        var chip = document.createElement("div");
+        chip.className = "suggestion-chip";
+        chip.textContent = "+ " + s;
+        chip.addEventListener("click", function(){ addSkill(s); });
+        skillSuggestions.appendChild(chip);
+      });
+  }
+  renderSuggestions();
+
+  skillInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === ","){
+      e.preventDefault();
+      addSkill(skillInput.value);
+      skillInput.value = "";
+    } else if (e.key === "Backspace" && !skillInput.value && state.skills.length){
+      state.skills.pop();
+      renderTags();
+      renderSuggestions();
+    }
+  });
+
+  buildPillGroup($("genderGroup"), GENDER, "gender");
+
+  /* ============================================================
+     7. NAVIGATION + VALIDATION
+     ============================================================ */
+  function showStep(step){
+    document.querySelectorAll(".step").forEach(function(s){ s.classList.remove("active"); });
+    document.querySelector('.step[data-step="' + step + '"]').classList.add("active");
+    if (step === "success"){
+      $("progressFill").style.width = "100%";
+      $("progressLabel").textContent = "DONE";
+    } else {
+      $("progressFill").style.width = (step/3*100) + "%";
+      $("progressLabel").textContent = "STEP 0" + step + " / 03";
+    }
+    currentStep = step;
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function setError(key, msg){
+    var el = $("err-" + key);
+    if (el) el.textContent = msg;
+  }
+
+  function validateStep1(){
+    var ok = true;
+    if (!state.monthly_salary || state.monthly_salary <= 0){ setError("salary","Enter a monthly salary greater than 0."); ok = false; }
+    if (!state.role_slug){ setError("role","Select a role from the list."); ok = false; }
+    else if (state.role_slug === "other" && !state.role_raw.trim()){ setError("role","Type your job title."); ok = false; }
+    if (!state.experience_bucket){ setError("experience","Select your experience range."); ok = false; }
+    if (!state.city){ setError("city","Enter or select your city."); ok = false; }
+    return ok;
+  }
+
+  function validateStep2(){
+    var ok = true;
+    if (!state.company_raw){ setError("company","Enter your company name."); ok = false; }
+    if (!state.company_size_category){ setError("size","Select a company size."); ok = false; }
+    if (!state.employment_type){ setError("employment","Select an employment type."); ok = false; }
+    if (!state.industry){ setError("industry","Select an industry."); ok = false; }
+    return ok;
+  }
+
+  function validateStep3(){
+    var ok = true;
+    if (!state.skills.length){ setError("skills","Add at least one skill."); ok = false; }
+    if (!state.gender){ setError("gender","Select an option — you can choose \u201cPrefer not to say\u201d."); ok = false; }
+    return ok;
+  }
+
+  document.querySelectorAll("[data-next]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var target = parseInt(btn.dataset.next,10);
+      var valid = currentStep === 1 ? validateStep1() : validateStep2();
+      if (valid) showStep(target);
+    });
+  });
+  document.querySelectorAll("[data-back]").forEach(function(btn){
+    btn.addEventListener("click", function(){ showStep(parseInt(btn.dataset.back,10)); });
+  });
+
+  /* ============================================================
+     8. SUBMIT
+     ============================================================ */
+  $("salaryForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    if (!validateStep3()) return;
+
+    // honeypot — bots fill hidden fields, humans never see this one
+    if ($("hp_field").value){
+      showStep("success");
+      return;
+    }
+
+    var submitBtn = $("submitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    var payload = {
+      submission_id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
+      timestamp: new Date().toISOString(),
+      monthly_salary: state.monthly_salary,
+      salary_type: state.salary_type,
+      role_slug: state.role_slug,
+      role_raw: state.role_raw,
+      experience_bucket: state.experience_bucket,
+      city: state.city,
+      company_raw: state.company_raw,
+      company_size_category: state.company_size_category,
+      employment_type: state.employment_type,
+      industry: state.industry,
+      skills: state.skills,
+      gender: state.gender
+    };
+
+    if (SHEET_ENDPOINT_URL.indexOf("PASTE_YOUR") !== -1){
+      console.warn("TruCareer form: SHEET_ENDPOINT_URL is not configured yet. Payload:", payload);
+      showStep("success");
+      return;
+    }
+
+    fetch(SHEET_ENDPOINT_URL, {
+      method: "POST",
+      mode: "no-cors", // Apps Script web apps don't return CORS headers; this is a fire-and-forget POST
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    }).then(function(){
+      showStep("success");
+    }).catch(function(err){
+      console.error("Submission failed:", err);
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit";
+      alert("Something went wrong sending your response. Please check your connection and try again.");
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
